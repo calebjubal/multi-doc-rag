@@ -5,11 +5,28 @@ from langchain_text_splitters import CharacterTextSplitter
 from langchain_community.vectorstores import FAISS
 from langchain_classic.memory import ConversationBufferMemory
 from langchain_classic.chains.conversational_retrieval.base import ConversationalRetrievalChain
-from langchain_huggingface.embeddings import HuggingFaceEmbeddings
+# from langchain_huggingface.embeddings import HuggingFaceEmbeddings
+from sentence_transformers import SentenceTransformer
 from langchain_huggingface import ChatHuggingFace, HuggingFaceEndpoint
 from htmlTemplates import css
 import os
 from langchain_cerebras import ChatCerebras
+
+
+# ---------------- EMBEDDINGS WRAPPER ---------------- #
+
+class SentenceTransformerEmbeddings:
+    def __init__(self, model_name: str):
+        self.model = SentenceTransformer(model_name)
+
+    def embed_documents(self, texts: list[str]) -> list[list[float]]:
+        return self.model.encode(texts, convert_to_numpy=True).tolist()
+
+    def embed_query(self, text: str) -> list[float]:
+        return self.model.encode(text, convert_to_numpy=True).tolist()
+
+    def __call__(self, text: str) -> list[float]:
+        return self.embed_query(text)
 
 
 # ---------------- PDF + TEXT UTILS ---------------- #
@@ -34,7 +51,7 @@ def get_text_chunks(text):
 
 
 def get_vectorstore(text_chunks):
-    embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+    embeddings = SentenceTransformerEmbeddings("BAAI/bge-base-en-v1.5")
     return FAISS.from_texts(texts=text_chunks, embedding=embeddings)
 
 
